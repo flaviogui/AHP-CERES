@@ -1,0 +1,52 @@
+<!-- alternativas.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alunos - Seleção AHP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container py-5">
+    <h2 class="text-center mb-4">Informe os nomes dos alunos</h2>
+    <form id="formAlunos" class="mx-auto" style="max-width: 500px">
+      <div id="camposAlunos"></div>
+      <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary">Confirmar e Continuar</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const qtd = parseInt(localStorage.getItem("qtdAlunos"));
+    const camposDiv = document.getElementById("camposAlunos");
+
+    if (!qtd || isNaN(qtd)) {
+      alert("Número de alunos não definido. Volte à página inicial.");
+      window.location.href = "index.html";
+    } else {
+      for (let i = 1; i <= qtd; i++) {
+        const div = document.createElement("div");
+        div.classList.add("mb-3");
+        div.innerHTML = `
+          <label class="form-label">Aluno ${i}</label>
+          <input type="text" class="form-control" name="aluno${i}" required placeholder="Nome do aluno ${i}" />
+        `;
+        camposDiv.appendChild(div);
+      }
+    }
+
+    document.getElementById("formAlunos").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const nomes = [];
+      const inputs = document.querySelectorAll("input[name^='aluno']");
+      inputs.forEach(input => nomes.push(input.value.trim()));
+
+      localStorage.setItem("nomesAlunos", JSON.stringify(nomes));
+      window.location.href = "criterios.html";
+    });
+  </script>
+</body>
+</html>

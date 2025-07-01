@@ -1,0 +1,38 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seleção AHP - Monitor/Bolsista</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container py-5">
+    <h1 class="text-center mb-4">Seleção de Monitor/Bolsista para Projeto de Pesquisa</h1>
+    <form id="formQtdAlunos" class="mx-auto" style="max-width: 400px;">
+      <div class="mb-3">
+        <label for="qtdAlunos" class="form-label">Informe a quantidade de alunos</label>
+        <input type="number" id="qtdAlunos" name="qtdAlunos" class="form-control" min="2" max="20" required placeholder="Ex: 3" />
+      </div>
+      <div class="text-center">
+        <button type="submit" class="btn btn-primary">Continuar</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById("formQtdAlunos").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const qtd = parseInt(document.getElementById("qtdAlunos").value);
+      if (isNaN(qtd) || qtd < 2) {
+        alert("Informe um número válido de alunos (mínimo 2).");
+        return;
+      }
+      localStorage.setItem("qtdAlunos", qtd);
+      window.location.href = "alternativas.html";
+    });
+  </script>
+</body>
+</html>
