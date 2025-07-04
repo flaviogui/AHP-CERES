@@ -1,50 +1,162 @@
-<!-- resultado.html -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resultado da Seleção - AHP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resultado Final - Seleção de Monitor</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { background-color: #f8f9fa; }
+    .ranking li { padding: 8px 0; font-size: 1.1rem; }
+    .consistencia-box {
+      background: #fff3cd;
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 5px solid #ffc107;
+      margin-top: 1rem;
+    }
+    canvas { margin-top: 2rem; }
+  </style>
 </head>
 <body>
   <div class="container py-5">
-    <h2 class="text-center mb-4">Resultado da Seleção</h2>
-    <div id="resultadoTexto" class="mb-4 text-center"></div>
-    <canvas id="graficoResultado" height="120"></canvas>
-    <div id="consistencia" class="text-center mt-4"></div>
+    <h2 class="text-center mb-4">🏆 Resultado da Seleção de Monitor/Bolsista</h2>
+
+    <div id="resultado" class="mb-4"></div>
+    <canvas id="grafico"></canvas>
+
+    <div class="text-center mt-5">
+      <button onclick="reiniciar()" class="btn btn-outline-danger">Reiniciar Seleção</button>
+    </div>
   </div>
 
-  <script src="ahp.js"></script>
-  <script src="dados.js"></script>
   <script>
-    const resultado = calcularResultadoFinal();
-    const alunos = resultado.alunos;
-    const pesos = resultado.pesos;
-    const cr = resultado.cr;
+    const criterios = [
+      "Coeficiente de rendimento",
+      "Disponibilidade",
+      "Experiência",
+      "Habilidades",
+      "Desempenho em entrevistas"
+    ];
+    const alunos = JSON.parse(localStorage.getItem("nomesAlunos"));
+    const compCrit = JSON.parse(localStorage.getItem("comparacoes_criterios"));
+    const compAlt = JSON.parse(localStorage.getItem("comparacoes_alternativas"));
 
-    // Mostra melhor aluno
-    const melhorIndex = pesos.indexOf(Math.max(...pesos));
-    const melhorAluno = alunos[melhorIndex];
-    const resultadoTexto = document.getElementById("resultadoTexto");
-    resultadoTexto.innerHTML = `<h4>Aluno mais indicado: <strong>${melhorAluno}</strong></h4>`;
+    function criarMatriz(n) {
+      return Array.from({ length: n }, () => Array(n).fill(1));
+    }
 
-    // Gráfico
-    const ctx = document.getElementById("graficoResultado").getContext("2d");
-    new Chart(ctx, {
-      type: 'bar',
+    function preencherMatriz(matriz, nomes, comparacoes, chavePrefixo) {
+      for (let i = 0; i < nomes.length; i++) {
+        for (let j = i + 1; j < nomes.length; j++) {
+          const chave = `${chavePrefixo ? `${chavePrefixo}::` : ''}${nomes[i]}_${nomes[j]}`;
+          const val = comparacoes[chave] || 1;
+          matriz[i][j] = val;
+          matriz[j][i] = 1 / val;
+        }
+      }
+    }
+
+    function normalizar(matriz) {
+      const n = matriz.length;
+      const somaCol = Array(n).fill(0);
+      const norm = criarMatriz(n);
+
+      for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+          somaCol[j] += matriz[i][j];
+        }
+      }
+
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          norm[i][j] = matriz[i][j] / somaCol[j];
+        }
+      }
+      return norm;
+    }
+
+    function vetorPesos(norm) {
+      const n = norm.length;
+      return norm.map(row => row.reduce((acc, val) => acc + val, 0) / n);
+    }
+
+    function consistencia(matriz, pesos) {
+      const n = matriz.length;
+      const Aw = matriz.map((row, i) => row.reduce((acc, val, j) => acc + val * pesos[j], 0));
+      const lambdaMax = Aw.reduce((acc, val, i) => acc + val / pesos[i], 0) / n;
+      const CI = (lambdaMax - n) / (n - 1);
+      const RI = { 1: 0, 2: 0, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24 }[n] || 1.12;
+      const CR = CI / RI;
+      return { lambdaMax, CI, CR };
+    }
+
+    // === MATRIZ DE CRITÉRIOS ===
+    const matrizCrit = criarMatriz(criterios.length);
+    preencherMatriz(matrizCrit, criterios, compCrit);
+    const normCrit = normalizar(matrizCrit);
+    const pesosCrit = vetorPesos(normCrit);
+    const consistCrit = consistencia(matrizCrit, pesosCrit);
+
+    // === MATRIZES DE ALTERNATIVAS ===
+    const pesosFinais = Array(alunos.length).fill(0);
+    criterios.forEach((criterio, idx) => {
+      const matrizAlt = criarMatriz(alunos.length);
+      preencherMatriz(matrizAlt, alunos, compAlt, criterio);
+      const normAlt = normalizar(matrizAlt);
+      const pesosAlt = vetorPesos(normAlt);
+
+      for (let i = 0; i < alunos.length; i++) {
+        pesosFinais[i] += pesosAlt[i] * pesosCrit[idx];
+      }
+    });
+
+    // === RESULTADO FINAL ===
+    const resultadoOrdenado = alunos.map((nome, i) => ({
+      nome, peso: pesosFinais[i]
+    })).sort((a, b) => b.peso - a.peso);
+
+    const div = document.getElementById("resultado");
+    const ol = document.createElement("ol");
+    ol.classList.add("ranking");
+
+    resultadoOrdenado.forEach(item => {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${item.nome}</strong> — ${item.peso.toFixed(4)}`;
+      ol.appendChild(li);
+    });
+
+    const box = document.createElement("div");
+    box.classList.add("consistencia-box");
+    box.innerHTML = `
+      <strong>Consistência da matriz de critérios:</strong><br>
+      λ máximo: ${consistCrit.lambdaMax.toFixed(3)}<br>
+      CI: ${consistCrit.CI.toFixed(3)}<br>
+      CR: ${consistCrit.CR.toFixed(3)} → <strong>${consistCrit.CR < 0.10 ? 'Aceitável ✅' : 'Inaceitável ⚠️'}</strong>
+    `;
+
+    div.appendChild(ol);
+    div.appendChild(box);
+
+    // === GRÁFICO ===
+    new Chart(document.getElementById("grafico"), {
+      type: "bar",
       data: {
-        labels: alunos,
+        labels: resultadoOrdenado.map(a => a.nome),
         datasets: [{
-          label: 'Prioridade',
-          data: pesos.map(p => p.toFixed(4)),
-          backgroundColor: '#0d6efd'
+          label: "Pontuação Final",
+          data: resultadoOrdenado.map(a => a.peso),
+          backgroundColor: "#0d6efd88",
+          borderColor: "#0d6efd",
+          borderWidth: 1
         }]
       },
       options: {
         responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
         scales: {
           y: {
             beginAtZero: true,
@@ -54,12 +166,11 @@
       }
     });
 
-    // Consistência
-    const divCons = document.getElementById("consistencia");
-    if (cr < 0.1) {
-      divCons.innerHTML = `<p class="text-success">Consistência aceitável (CR = ${cr.toFixed(4)})</p>`;
-    } else {
-      divCons.innerHTML = `<p class="text-danger">Atenção: inconsistência elevada (CR = ${cr.toFixed(4)})</p>`;
+    function reiniciar() {
+      if (confirm("Deseja realmente reiniciar a seleção? Todos os dados serão apagados.")) {
+        localStorage.clear();
+        window.location.href = "index.html";
+      }
     }
   </script>
 </body>

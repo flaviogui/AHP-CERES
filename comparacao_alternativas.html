@@ -1,47 +1,51 @@
-<!-- comparacao_alternativas.html -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Comparação dos Alunos - AHP (Slider com Régua)</title>
+  <title>Comparação das Alternativas - AHP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
   <style>
-    .slider-container {
-      margin-bottom: 1.5rem;
-    }
-    .slider-label {
-      font-weight: 600;
-      margin-bottom: 0.3rem;
-    }
-    .slider-text {
-      margin-top: 0.2rem;
-      font-style: italic;
-      color: #555;
-    }
     .ruler {
       display: flex;
       justify-content: space-between;
-      margin-top: 4px;
       font-size: 0.85rem;
       color: #666;
-      user-select: none;
       font-family: monospace;
+      user-select: none;
     }
     .ruler span {
       width: 10%;
       text-align: center;
     }
+    .bloco-criterio {
+      border: 2px solid #007bff44;
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-bottom: 2rem;
+      background-color: #f1f9ff;
+    }
+    .bloco-comparacao {
+      border: 1px solid #ddd;
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: #fff;
+      margin-bottom: 1.5rem;
+    }
+    .slider-text {
+      margin-top: 4px;
+      font-style: italic;
+      color: #444;
+    }
   </style>
 </head>
 <body>
   <div class="container py-5">
-    <h2 class="text-center mb-4">Comparação dos Alunos para Cada Critério</h2>
-    <form id="formComparacaoAlt" class="mx-auto" style="max-width: 900px">
-      <div id="blocoComparacoes"></div>
+    <h2 class="text-center mb-4">Comparação Par a Par dos Alunos</h2>
+    <form id="formComparacaoAlt" class="mx-auto" style="max-width: 1000px">
+      <div id="containerComparacoes"></div>
       <div class="text-center mt-4">
-        <button type="submit" class="btn btn-primary">Ver Resultado</button>
+        <button type="submit" class="btn btn-success">Ver Resultado</button>
       </div>
     </form>
   </div>
@@ -54,110 +58,109 @@
       "Habilidades",
       "Desempenho em entrevistas"
     ];
-    const alunos = JSON.parse(localStorage.getItem("nomesAlunos")) || [];
 
-    if (!alunos || alunos.length < 2) {
-      alert("Nomes dos alunos não encontrados. Volte ao início.");
-      window.location.href = "index.html";
-    }
+    const alunos = JSON.parse(localStorage.getItem("nomesAlunos"));
+    const container = document.getElementById("containerComparacoes");
 
-    const bloco = document.getElementById("blocoComparacoes");
-
-    function textoPreferencia(valor, aluno1, aluno2) {
-      const intensidades = {
-        1: "Extremamente preferido",
-        2: "Muito fortemente preferido",
-        3: "Fortemente preferido",
-        4: "Moderadamente preferido",
-        5: "Igual preferência"
-      };
-
-      if (valor === 5) {
-        return `Igual preferência entre ${aluno1} e ${aluno2}`;
-      } else if (valor > 5) {
-        const grau = intensidades[10 - valor] || "Entre valores";
-        return `${aluno1} é ${grau} em relação a ${aluno2}`;
-      } else {
-        const grau = intensidades[valor] || "Entre valores";
-        return `${aluno2} é ${grau} em relação a ${aluno1}`;
-      }
-    }
-
-    function criarSlider(name, aluno1, aluno2) {
-      const container = document.createElement("div");
-      container.classList.add("slider-container");
-
-      const label = document.createElement("label");
-      label.classList.add("slider-label");
-      label.textContent = `Entre "${aluno1}" e "${aluno2}", quem se destaca mais?`;
-
-      const input = document.createElement("input");
-      input.type = "range";
-      input.min = 1;
-      input.max = 9;
-      input.step = 1;
-      input.value = 5;
-      input.name = name;
-      input.classList.add("form-range");
-
-      const escalaDiv = document.createElement("div");
-      escalaDiv.classList.add("ruler");
-      for(let i = 1; i <= 9; i++) {
-        const span = document.createElement("span");
-        span.textContent = i;
-        escalaDiv.appendChild(span);
-      }
-
-      const texto = document.createElement("div");
-      texto.classList.add("slider-text");
-      texto.textContent = textoPreferencia(5, aluno1, aluno2);
-
-      input.addEventListener("input", () => {
-        texto.textContent = textoPreferencia(parseInt(input.value), aluno1, aluno2);
-      });
-
-      container.appendChild(label);
-      container.appendChild(input);
-      container.appendChild(escalaDiv);
-      container.appendChild(texto);
-
-      return container;
-    }
-
-    criterios.forEach(criterio => {
-      const blocoCrit = document.createElement("div");
-      blocoCrit.classList.add("border", "rounded", "p-3", "mb-4", "bg-light");
+    criterios.forEach((criterio, cIndex) => {
+      const divCriterio = document.createElement("div");
+      divCriterio.classList.add("bloco-criterio");
 
       const titulo = document.createElement("h5");
       titulo.textContent = `Critério: ${criterio}`;
-      blocoCrit.appendChild(titulo);
+      divCriterio.appendChild(titulo);
 
       for (let i = 0; i < alunos.length; i++) {
         for (let j = i + 1; j < alunos.length; j++) {
           const chave = `${criterio}::${alunos[i]}_${alunos[j]}`;
-          const slider = criarSlider(chave, alunos[i], alunos[j]);
-          blocoCrit.appendChild(slider);
+
+          const bloco = document.createElement("div");
+          bloco.classList.add("bloco-comparacao");
+
+          const pergunta = document.createElement("p");
+          pergunta.innerHTML = `Em relação à <strong>${criterio}</strong>, quem se destaca mais?`;
+
+          const radios = document.createElement("div");
+          radios.innerHTML = `
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="${chave}_preferido" id="${chave}_a" value="a" required>
+              <label class="form-check-label" for="${chave}_a">${alunos[i]}</label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="${chave}_preferido" id="${chave}_b" value="b">
+              <label class="form-check-label" for="${chave}_b">${alunos[j]}</label>
+            </div>
+          `;
+
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.min = 1;
+          slider.max = 9;
+          slider.step = 1;
+          slider.value = 1;
+          slider.classList.add("form-range");
+          slider.name = `${chave}_intensidade`;
+
+          const legenda = document.createElement("div");
+          legenda.classList.add("ruler");
+          for (let v = 1; v <= 9; v++) {
+            const span = document.createElement("span");
+            span.textContent = v;
+            legenda.appendChild(span);
+          }
+
+          const texto = document.createElement("div");
+          texto.classList.add("slider-text");
+          texto.textContent = `Selecione quem é melhor.`;
+
+          slider.addEventListener("input", () => {
+            const valor = parseInt(slider.value);
+            const preferido = document.querySelector(`input[name="${chave}_preferido"]:checked`);
+            if (preferido) {
+              const mais = preferido.value === "a" ? alunos[i] : alunos[j];
+              const menos = preferido.value === "a" ? alunos[j] : alunos[i];
+              texto.textContent = `${mais} é ${valor}× melhor que ${menos}. Logo, ${menos} é 1/${valor} em relação a ${mais}.`;
+            } else {
+              texto.textContent = `Selecione quem é melhor.`;
+            }
+          });
+
+          radios.querySelectorAll("input").forEach(radio => {
+            radio.addEventListener("change", () => {
+              const valor = parseInt(slider.value);
+              const mais = radio.value === "a" ? alunos[i] : alunos[j];
+              const menos = radio.value === "a" ? alunos[j] : alunos[i];
+              texto.textContent = `${mais} é ${valor}× melhor que ${menos}. Logo, ${menos} é 1/${valor} em relação a ${mais}.`;
+            });
+          });
+
+          bloco.appendChild(pergunta);
+          bloco.appendChild(radios);
+          bloco.appendChild(slider);
+          bloco.appendChild(legenda);
+          bloco.appendChild(texto);
+          divCriterio.appendChild(bloco);
         }
       }
 
-      bloco.appendChild(blocoCrit);
+      container.appendChild(divCriterio);
     });
 
-    document.getElementById("formComparacaoAlt").addEventListener("submit", function(e) {
+    document.getElementById("formComparacaoAlt").addEventListener("submit", function (e) {
       e.preventDefault();
-      const sliders = document.querySelectorAll("input[type=range]");
       const comparacoes = {};
 
-      sliders.forEach(slider => {
-        let val = parseInt(slider.value);
-        const name = slider.name;
+      criterios.forEach((criterio) => {
+        for (let i = 0; i < alunos.length; i++) {
+          for (let j = i + 1; j < alunos.length; j++) {
+            const chave = `${criterio}::${alunos[i]}_${alunos[j]}`;
+            const preferido = document.querySelector(`input[name="${chave}_preferido"]:checked`);
+            const intensidade = parseInt(document.querySelector(`input[name="${chave}_intensidade"]`).value);
 
-        if (val === 5) {
-          comparacoes[name] = 1;
-        } else if (val > 5) {
-          comparacoes[name] = val - 4;
-        } else {
-          comparacoes[name] = 1 / (5 - val);
+            if (preferido) {
+              comparacoes[chave] = (preferido.value === "a") ? intensidade : 1 / intensidade;
+            }
+          }
         }
       });
 
