@@ -18,25 +18,35 @@
       width: 10%;
       text-align: center;
     }
-    .bloco-comparacao {
-      border: 1px solid #ddd;
+    .bloco-criterio {
+      border: 2px solid #007bff44;
       padding: 1.5rem;
       border-radius: 10px;
-      background-color: #f9f9f9;
       margin-bottom: 2rem;
+      background-color: #f1f9ff;
+    }
+    .bloco-comparacao {
+      border: 1px solid #ddd;
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: #fff;
+      margin-bottom: 1.5rem;
     }
     .slider-text {
-      margin-top: 6px;
+      margin-top: 4px;
       font-style: italic;
-      color: #333;
+      color: #444;
     }
   </style>
 </head>
 <body>
   <div class="container py-5">
     <h2 class="text-center mb-4">Comparação Par a Par dos Critérios</h2>
-    <form id="formComparacaoCrit" class="mx-auto" style="max-width: 900px">
-      <div id="blocoComparacoes"></div>
+    <form id="formComparacaoCrit" class="mx-auto" style="max-width: 1000px">
+      <div class="bloco-criterio">
+        <h5>Comparações entre os critérios</h5>
+        <div id="blocoComparacoes"></div>
+      </div>
       <div class="text-center mt-4">
         <button type="submit" class="btn btn-success">Continuar</button>
       </div>
@@ -51,18 +61,6 @@
       "Habilidades",
       "Desempenho em entrevistas"
     ];
-
-    const intensidades = {
-      1: "Igual importância",
-      2: "Importância leve",
-      3: "Importância moderada",
-      4: "Importância razoável",
-      5: "Importância forte",
-      6: "Importância muito forte",
-      7: "Importância dominante",
-      8: "Importância muito dominante",
-      9: "Importância extrema"
-    };
 
     const bloco = document.getElementById("blocoComparacoes");
 
@@ -109,7 +107,6 @@
         texto.classList.add("slider-text");
         texto.textContent = `Selecione qual critério é mais importante.`;
 
-        // Atualiza a explicação ao mover o slider
         slider.addEventListener("input", () => {
           const valor = parseInt(slider.value);
           const preferido = document.querySelector(`input[name="${chave}_preferido"]:checked`);
@@ -122,13 +119,11 @@
           }
         });
 
-        // Atualiza a explicação ao selecionar o preferido
         radios.querySelectorAll("input").forEach(radio => {
           radio.addEventListener("change", () => {
             const valor = parseInt(slider.value);
-            const preferido = radio.value;
-            const mais = preferido === "a" ? criterios[i] : criterios[j];
-            const menos = preferido === "a" ? criterios[j] : criterios[i];
+            const mais = radio.value === "a" ? criterios[i] : criterios[j];
+            const menos = radio.value === "a" ? criterios[j] : criterios[i];
             texto.textContent = `${mais} é ${valor}× mais importante que ${menos}. Logo, ${menos} é 1/${valor} em relação a ${mais}.`;
           });
         });
@@ -153,11 +148,7 @@
           const intensidade = parseInt(document.querySelector(`input[name="${chave}_intensidade"]`).value);
 
           if (preferido) {
-            if (preferido.value === "a") {
-              comparacoes[`${criterios[i]}_${criterios[j]}`] = intensidade;
-            } else {
-              comparacoes[`${criterios[i]}_${criterios[j]}`] = 1 / intensidade;
-            }
+            comparacoes[chave] = (preferido.value === "a") ? intensidade : 1 / intensidade;
           }
         }
       }
