@@ -21,7 +21,7 @@
 </head>
 <body>
   <div class="container py-5">
-    <h2 class="text-center mb-4">🏆 Resultado da Seleção de Monitor/Bolsista</h2>
+    <h2 class="text-center mb-4">🏆 Resultado da Seleção de Monitor</h2>
 
     <div id="resultado" class="mb-4"></div>
     <canvas id="grafico"></canvas>
@@ -32,13 +32,8 @@
   </div>
 
   <script>
-    const criterios = [
-      "Coeficiente de rendimento",
-      "Disponibilidade",
-      "Experiência",
-      "Habilidades",
-      "Desempenho em entrevistas"
-    ];
+    const criterios = JSON.parse(localStorage.getItem("criteriosSelecionados")) || [];
+
     const alunos = JSON.parse(localStorage.getItem("nomesAlunos"));
     const compCrit = JSON.parse(localStorage.getItem("comparacoes_criterios"));
     const compAlt = JSON.parse(localStorage.getItem("comparacoes_alternativas"));

@@ -1,15 +1,11 @@
 function calcularResultadoFinal() {
-  const criterios = [
-    "Coeficiente de rendimento",
-    "Disponibilidade",
-    "Experiência",
-    "Habilidades",
-    "Desempenho em entrevistas"
-  ];
+  const criterios = JSON.parse(localStorage.getItem("criteriosSelecionados")) || [];
+
 
   const alunos = JSON.parse(localStorage.getItem("nomesAlunos"));
   const compCrit = JSON.parse(localStorage.getItem("comparacoes_criterios"));
   const compAlt = JSON.parse(localStorage.getItem("comparacoes_alternativas"));
+  localStorage.setItem("criteriosSelecionados", JSON.stringify(lista));
 
   function criarMatrizComparacao(pares, itens) {
     const n = itens.length;

@@ -36,6 +36,31 @@
       margin-top: 4px;
       font-style: italic;
       color: #444;
+      text-align: center;
+    }
+    .labels-top {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .slider-marks {
+      display: flex;
+      justify-content: space-between;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #333;
+      margin-top: 0.3rem;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #0d6efd;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -6px;
     }
   </style>
 </head>
@@ -45,24 +70,35 @@
     <form id="formComparacaoAlt" class="mx-auto" style="max-width: 1000px">
       <div id="containerComparacoes"></div>
       <div class="text-center mt-4">
-        <button type="submit" class="btn btn-success">Ver Resultado</button>
+        <button type="submit" class="btn btn-success" id="btnContinuar">Continuar</button>
       </div>
     </form>
   </div>
 
   <script>
-    const criterios = [
-      "Coeficiente de rendimento",
-      "Disponibilidade",
-      "Experiência",
-      "Habilidades",
-      "Desempenho em entrevistas"
-    ];
-
+    const criterios = JSON.parse(localStorage.getItem("criteriosSelecionados")) || [];
     const alunos = JSON.parse(localStorage.getItem("nomesAlunos"));
     const container = document.getElementById("containerComparacoes");
+    const btnContinuar = document.getElementById("btnContinuar");
 
-    criterios.forEach((criterio, cIndex) => {
+    const comparacoes = [];
+
+    criterios.forEach((criterio) => {
+      for (let i = 0; i < alunos.length; i++) {
+        for (let j = i + 1; j < alunos.length; j++) {
+          comparacoes.push({ criterio, alunoA: alunos[i], alunoB: alunos[j] });
+        }
+      }
+    });
+
+    let indiceAtual = 0;
+    const respostas = {};
+
+    function renderizarComparacao() {
+      container.innerHTML = "";
+      const { criterio, alunoA, alunoB } = comparacoes[indiceAtual];
+      const chave = `${criterio}::${alunoA}_${alunoB}`;
+
       const divCriterio = document.createElement("div");
       divCriterio.classList.add("bloco-criterio");
 
@@ -70,102 +106,83 @@
       titulo.textContent = `Critério: ${criterio}`;
       divCriterio.appendChild(titulo);
 
-      for (let i = 0; i < alunos.length; i++) {
-        for (let j = i + 1; j < alunos.length; j++) {
-          const chave = `${criterio}::${alunos[i]}_${alunos[j]}`;
+      const bloco = document.createElement("div");
+      bloco.classList.add("bloco-comparacao");
 
-          const bloco = document.createElement("div");
-          bloco.classList.add("bloco-comparacao");
+      const pergunta = document.createElement("p");
+      pergunta.innerHTML = `Comparação entre <strong>${alunoA}</strong> e <strong>${alunoB}</strong> neste critério.`;
 
-          const pergunta = document.createElement("p");
-          pergunta.innerHTML = `Em relação à <strong>${criterio}</strong>, quem se destaca mais?`;
+      const labels = document.createElement("div");
+      labels.classList.add("labels-top");
+      labels.innerHTML = `<span>${alunoA}</span><span>${alunoB}</span>`;
 
-          const radios = document.createElement("div");
-          radios.innerHTML = `
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="${chave}_preferido" id="${chave}_a" value="a" required>
-              <label class="form-check-label" for="${chave}_a">${alunos[i]}</label>
-            </div>
-            <div class="form-check mb-2">
-              <input class="form-check-input" type="radio" name="${chave}_preferido" id="${chave}_b" value="b">
-              <label class="form-check-label" for="${chave}_b">${alunos[j]}</label>
-            </div>
-          `;
+      const slider = document.createElement("input");
+      slider.type = "range";
+      slider.min = 0;
+      slider.max = 8;
+      slider.step = 1;
+      slider.value = 4;
+      slider.classList.add("form-range");
+      slider.name = `${chave}_intensidade`;
 
-          const slider = document.createElement("input");
-          slider.type = "range";
-          slider.min = 1;
-          slider.max = 9;
-          slider.step = 1;
-          slider.value = 1;
-          slider.classList.add("form-range");
-          slider.name = `${chave}_intensidade`;
+      const marks = document.createElement("div");
+      marks.classList.add("slider-marks");
+      marks.innerHTML = "<span>9</span><span>7</span><span>5</span><span>3</span><span>1</span><span>3</span><span>5</span><span>7</span><span>9</span>";
 
-          const legenda = document.createElement("div");
-          legenda.classList.add("ruler");
-          for (let v = 1; v <= 9; v++) {
-            const span = document.createElement("span");
-            span.textContent = v;
-            legenda.appendChild(span);
-          }
+      const texto = document.createElement("div");
+      texto.classList.add("slider-text");
+      texto.textContent = `Selecione quem tem melhor desempenho neste critério.`;
 
-          const texto = document.createElement("div");
-          texto.classList.add("slider-text");
-          texto.textContent = `Selecione quem é melhor.`;
+      slider.addEventListener("input", () => {
+        const idx = parseInt(slider.value);
+        const valores = [9, 7, 5, 3, 1, 3, 5, 7, 9];
+        const valor = valores[idx];
 
-          slider.addEventListener("input", () => {
-            const valor = parseInt(slider.value);
-            const preferido = document.querySelector(`input[name="${chave}_preferido"]:checked`);
-            if (preferido) {
-              const mais = preferido.value === "a" ? alunos[i] : alunos[j];
-              const menos = preferido.value === "a" ? alunos[j] : alunos[i];
-              texto.textContent = `${mais} é ${valor}× melhor que ${menos}. Logo, ${menos} é 1/${valor} em relação a ${mais}.`;
-            } else {
-              texto.textContent = `Selecione quem é melhor.`;
-            }
-          });
-
-          radios.querySelectorAll("input").forEach(radio => {
-            radio.addEventListener("change", () => {
-              const valor = parseInt(slider.value);
-              const mais = radio.value === "a" ? alunos[i] : alunos[j];
-              const menos = radio.value === "a" ? alunos[j] : alunos[i];
-              texto.textContent = `${mais} é ${valor}× melhor que ${menos}. Logo, ${menos} é 1/${valor} em relação a ${mais}.`;
-            });
-          });
-
-          bloco.appendChild(pergunta);
-          bloco.appendChild(radios);
-          bloco.appendChild(slider);
-          bloco.appendChild(legenda);
-          bloco.appendChild(texto);
-          divCriterio.appendChild(bloco);
-        }
-      }
-
-      container.appendChild(divCriterio);
-    });
-
-    document.getElementById("formComparacaoAlt").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const comparacoes = {};
-
-      criterios.forEach((criterio) => {
-        for (let i = 0; i < alunos.length; i++) {
-          for (let j = i + 1; j < alunos.length; j++) {
-            const chave = `${criterio}::${alunos[i]}_${alunos[j]}`;
-            const preferido = document.querySelector(`input[name="${chave}_preferido"]:checked`);
-            const intensidade = parseInt(document.querySelector(`input[name="${chave}_intensidade"]`).value);
-
-            if (preferido) {
-              comparacoes[chave] = (preferido.value === "a") ? intensidade : 1 / intensidade;
-            }
-          }
+        if (idx < 4) {
+          texto.textContent = `${alunoA}, dentro desse quesito, tem uma pontuação ${valor}× superior a ${alunoB}.`;
+        } else if (idx > 4) {
+          texto.textContent = `${alunoB}, dentro desse quesito, tem uma pontuação ${valor}× superior a ${alunoA}.`;
+        } else {
+          texto.textContent = `${alunoA} e ${alunoB} têm desempenho equivalente neste critério.`;
         }
       });
 
-      localStorage.setItem("comparacoes_alternativas", JSON.stringify(comparacoes));
-      window.location.href = "resultado.html";
+      bloco.appendChild(pergunta);
+      bloco.appendChild(labels);
+      bloco.appendChild(slider);
+      bloco.appendChild(marks);
+      bloco.appendChild(texto);
+      divCriterio.appendChild(bloco);
+      container.appendChild(divCriterio);
+    }
+
+    renderizarComparacao();
+
+    document.getElementById("formComparacaoAlt").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const { criterio, alunoA, alunoB } = comparacoes[indiceAtual];
+      const chave = `${criterio}::${alunoA}_${alunoB}`;
+      const slider = document.querySelector(`input[name="${chave}_intensidade"]`);
+      const idx = parseInt(slider.value);
+      const valores = [9, 7, 5, 3, 1, 3, 5, 7, 9];
+      const valor = valores[idx];
+
+      if (idx < 4) {
+        respostas[chave] = valor;
+      } else if (idx > 4) {
+        respostas[chave] = 1 / valor;
+      } else {
+        respostas[chave] = 1;
+      }
+
+      indiceAtual++;
+      if (indiceAtual < comparacoes.length) {
+        renderizarComparacao();
+      } else {
+        localStorage.setItem("comparacoes_alternativas", JSON.stringify(respostas));
+        window.location.href = "resultado.html";
+      }
     });
   </script>
 </body>

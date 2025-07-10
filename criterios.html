@@ -37,6 +37,28 @@
       font-style: italic;
       color: #444;
     }
+    .label-pares {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      margin-bottom: 0.25rem;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #0d6efd;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -6px;
+    }
+    .consistencia-box {
+      background: #fff3cd;
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 5px solid #ffc107;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -48,21 +70,17 @@
         <div id="blocoComparacoes"></div>
       </div>
       <div class="text-center mt-4">
-        <button type="submit" class="btn btn-success">Continuar</button>
+        <button type="submit" class="btn btn-success">Verificar Consistência</button>
       </div>
     </form>
+
+    <div id="resultadoConsistencia" class="mt-4"></div>
   </div>
 
   <script>
-    const criterios = [
-      "Coeficiente de rendimento",
-      "Disponibilidade",
-      "Experiência",
-      "Habilidades",
-      "Desempenho em entrevistas"
-    ];
-
+    const criterios = JSON.parse(localStorage.getItem("criteriosSelecionados")) || [];
     const bloco = document.getElementById("blocoComparacoes");
+    const resultadoDiv = document.getElementById("resultadoConsistencia");
 
     for (let i = 0; i < criterios.length; i++) {
       for (let j = i + 1; j < criterios.length; j++) {
@@ -74,64 +92,45 @@
         const pergunta = document.createElement("p");
         pergunta.innerHTML = `Entre <strong>${criterios[i]}</strong> e <strong>${criterios[j]}</strong>, qual é mais importante?`;
 
-        const radios = document.createElement("div");
-        radios.innerHTML = `
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="${chave}_preferido" id="${chave}_a" value="a" required>
-            <label class="form-check-label" for="${chave}_a">${criterios[i]}</label>
-          </div>
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="radio" name="${chave}_preferido" id="${chave}_b" value="b">
-            <label class="form-check-label" for="${chave}_b">${criterios[j]}</label>
-          </div>
-        `;
+        const labels = document.createElement("div");
+        labels.classList.add("label-pares");
+        labels.innerHTML = `<span>${criterios[i]}</span><span>${criterios[j]}</span>`;
 
         const slider = document.createElement("input");
         slider.type = "range";
-        slider.min = 1;
-        slider.max = 9;
+        slider.min = 0;
+        slider.max = 8;
         slider.step = 1;
-        slider.value = 1;
+        slider.value = 4;
         slider.classList.add("form-range");
         slider.name = `${chave}_intensidade`;
 
-        const legenda = document.createElement("div");
-        legenda.classList.add("ruler");
-        for (let v = 1; v <= 9; v++) {
-          const span = document.createElement("span");
-          span.textContent = v;
-          legenda.appendChild(span);
-        }
+        const marks = document.createElement("div");
+        marks.classList.add("ruler");
+        marks.innerHTML = "<span>9</span><span>7</span><span>5</span><span>3</span><span>1</span><span>3</span><span>5</span><span>7</span><span>9</span>";
 
         const texto = document.createElement("div");
         texto.classList.add("slider-text");
         texto.textContent = `Selecione qual critério é mais importante.`;
 
         slider.addEventListener("input", () => {
-          const valor = parseInt(slider.value);
-          const preferido = document.querySelector(`input[name="${chave}_preferido"]:checked`);
-          if (preferido) {
-            const mais = preferido.value === "a" ? criterios[i] : criterios[j];
-            const menos = preferido.value === "a" ? criterios[j] : criterios[i];
-            texto.textContent = `${mais} é ${valor}× mais importante que ${menos}. Logo, ${menos} é 1/${valor} em relação a ${mais}.`;
+          const idx = parseInt(slider.value);
+          const valores = [9, 7, 5, 3, 1, 3, 5, 7, 9];
+          const valor = valores[idx];
+
+          if (idx < 4) {
+            texto.textContent = `${criterios[i]} é ${valor}× mais importante que ${criterios[j]}`;
+          } else if (idx > 4) {
+            texto.textContent = `${criterios[j]} é ${valor}× mais importante que ${criterios[i]}`;
           } else {
-            texto.textContent = `Selecione qual critério é mais importante.`;
+            texto.textContent = `${criterios[i]} e ${criterios[j]} têm a mesma importância.`;
           }
         });
 
-        radios.querySelectorAll("input").forEach(radio => {
-          radio.addEventListener("change", () => {
-            const valor = parseInt(slider.value);
-            const mais = radio.value === "a" ? criterios[i] : criterios[j];
-            const menos = radio.value === "a" ? criterios[j] : criterios[i];
-            texto.textContent = `${mais} é ${valor}× mais importante que ${menos}. Logo, ${menos} é 1/${valor} em relação a ${mais}.`;
-          });
-        });
-
         div.appendChild(pergunta);
-        div.appendChild(radios);
+        div.appendChild(labels);
         div.appendChild(slider);
-        div.appendChild(legenda);
+        div.appendChild(marks);
         div.appendChild(texto);
         bloco.appendChild(div);
       }
@@ -139,22 +138,58 @@
 
     document.getElementById("formComparacaoCrit").addEventListener("submit", function (e) {
       e.preventDefault();
-      const comparacoes = {};
 
+      const comparacoes = {};
       for (let i = 0; i < criterios.length; i++) {
         for (let j = i + 1; j < criterios.length; j++) {
           const chave = `${criterios[i]}_${criterios[j]}`;
-          const preferido = document.querySelector(`input[name="${chave}_preferido"]:checked`);
-          const intensidade = parseInt(document.querySelector(`input[name="${chave}_intensidade"]`).value);
+          const slider = document.querySelector(`input[name="${chave}_intensidade"]`);
+          const idx = parseInt(slider.value);
+          const valores = [9, 7, 5, 3, 1, 3, 5, 7, 9];
+          const valor = valores[idx];
 
-          if (preferido) {
-            comparacoes[chave] = (preferido.value === "a") ? intensidade : 1 / intensidade;
-          }
+          comparacoes[chave] = idx < 4 ? valor : idx > 4 ? 1 / valor : 1;
         }
       }
 
       localStorage.setItem("comparacoes_criterios", JSON.stringify(comparacoes));
-      window.location.href = "comparacao_alternativas.html";
+
+      // Calcular consistência
+      const n = criterios.length;
+      const matriz = Array.from({ length: n }, () => Array(n).fill(1));
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const chave = `${criterios[i]}_${criterios[j]}`;
+          const val = comparacoes[chave] || 1;
+          matriz[i][j] = val;
+          matriz[j][i] = 1 / val;
+        }
+      }
+
+      const somaCol = Array(n).fill(0);
+      const norm = Array.from({ length: n }, () => Array(n).fill(0));
+
+      for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) somaCol[j] += matriz[i][j];
+      }
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) norm[i][j] = matriz[i][j] / somaCol[j];
+      }
+      const pesos = norm.map(row => row.reduce((a, b) => a + b, 0) / n);
+
+      const Aw = matriz.map((row, i) => row.reduce((acc, val, j) => acc + val * pesos[j], 0));
+      const lambdaMax = Aw.reduce((acc, val, i) => acc + val / pesos[i], 0) / n;
+      const CI = (lambdaMax - n) / (n - 1);
+      const RI = { 1: 0, 2: 0, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24 }[n] || 1.12;
+      const CR = CI / RI;
+
+      resultadoDiv.innerHTML = `<div class="consistencia-box">
+        <strong>Consistência da matriz:</strong><br>
+        λ máximo: ${lambdaMax.toFixed(3)}<br>
+        CI: ${CI.toFixed(3)}<br>
+        CR: ${CR.toFixed(3)} → <strong>${CR < 0.10 ? 'Aceitável ✅' : 'Inaceitável ⚠️'}</strong><br>
+        ${CR < 0.10 ? '<a href="comparacao_alternativas.html" class="btn btn-sm btn-primary mt-2">Continuar</a>' : '<span class="text-danger">Ajuste os valores antes de prosseguir.</span>'}
+      </div>`;
     });
   </script>
 </body>
