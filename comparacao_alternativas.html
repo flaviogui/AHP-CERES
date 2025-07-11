@@ -6,17 +6,8 @@
   <title>Comparação das Alternativas - AHP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
-    .ruler {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: #666;
-      font-family: monospace;
-      user-select: none;
-    }
-    .ruler span {
-      width: 10%;
-      text-align: center;
+    body {
+      background-color: #f8f9fa;
     }
     .bloco-criterio {
       border: 2px solid #007bff44;
@@ -65,12 +56,12 @@
   </style>
 </head>
 <body>
-  <div class="container py-5">
-    <h2 class="text-center mb-4">Comparação Par a Par dos Alunos</h2>
+  <div class="container py-4">
+    <h2 class="text-center text-primary mb-4">Comparação Par a Par dos Alunos</h2>
     <form id="formComparacaoAlt" class="mx-auto" style="max-width: 1000px">
-      <div id="containerComparacoes"></div>
-      <div class="text-center mt-4">
-        <button type="submit" class="btn btn-success" id="btnContinuar">Continuar</button>
+      <div id="grupoCriterio" class="bloco-criterio"></div>
+      <div class="text-end mt-3">
+        <button type="submit" class="btn btn-success">Continuar</button>
       </div>
     </form>
   </div>
@@ -78,43 +69,36 @@
   <script>
     const criterios = JSON.parse(localStorage.getItem("criteriosSelecionados")) || [];
     const alunos = JSON.parse(localStorage.getItem("nomesAlunos"));
-    const container = document.getElementById("containerComparacoes");
-    const btnContinuar = document.getElementById("btnContinuar");
+    const respostas = JSON.parse(localStorage.getItem("comparacoes_alternativas")) || {};
+    let indiceCriterio = parseInt(localStorage.getItem("criterioAtual")) || 0;
+    const criterioAtual = criterios[indiceCriterio];
 
-    const comparacoes = [];
+    const grupo = document.getElementById("grupoCriterio");
+    const titulo = document.createElement("h4");
+    titulo.className = "text-center text-primary mb-4";
+    titulo.textContent = `Critério: ${criterioAtual}`;
+    grupo.appendChild(titulo);
 
-    criterios.forEach((criterio) => {
-      for (let i = 0; i < alunos.length; i++) {
-        for (let j = i + 1; j < alunos.length; j++) {
-          comparacoes.push({ criterio, alunoA: alunos[i], alunoB: alunos[j] });
-        }
+    const pares = [];
+
+    for (let i = 0; i < alunos.length; i++) {
+      for (let j = i + 1; j < alunos.length; j++) {
+        pares.push({ a: alunos[i], b: alunos[j] });
       }
-    });
+    }
 
-    let indiceAtual = 0;
-    const respostas = {};
-
-    function renderizarComparacao() {
-      container.innerHTML = "";
-      const { criterio, alunoA, alunoB } = comparacoes[indiceAtual];
-      const chave = `${criterio}::${alunoA}_${alunoB}`;
-
-      const divCriterio = document.createElement("div");
-      divCriterio.classList.add("bloco-criterio");
-
-      const titulo = document.createElement("h5");
-      titulo.textContent = `Critério: ${criterio}`;
-      divCriterio.appendChild(titulo);
+    pares.forEach(({ a, b }) => {
+      const chave = `${criterioAtual}::${a}_${b}`;
 
       const bloco = document.createElement("div");
       bloco.classList.add("bloco-comparacao");
 
       const pergunta = document.createElement("p");
-      pergunta.innerHTML = `Comparação entre <strong>${alunoA}</strong> e <strong>${alunoB}</strong> neste critério.`;
+      pergunta.innerHTML = `Entre <strong>${a}</strong> e <strong>${b}</strong>, quem se destaca mais no critério <strong>${criterioAtual}</strong>?`;
 
       const labels = document.createElement("div");
-      labels.classList.add("labels-top");
-      labels.innerHTML = `<span>${alunoA}</span><span>${alunoB}</span>`;
+      labels.className = "labels-top";
+      labels.innerHTML = `<span>${a}</span><span>${b}</span>`;
 
       const slider = document.createElement("input");
       slider.type = "range";
@@ -122,28 +106,28 @@
       slider.max = 8;
       slider.step = 1;
       slider.value = 4;
-      slider.classList.add("form-range");
-      slider.name = `${chave}_intensidade`;
+      slider.className = "form-range";
+      slider.name = chave;
 
       const marks = document.createElement("div");
-      marks.classList.add("slider-marks");
+      marks.className = "slider-marks";
       marks.innerHTML = "<span>9</span><span>7</span><span>5</span><span>3</span><span>1</span><span>3</span><span>5</span><span>7</span><span>9</span>";
 
       const texto = document.createElement("div");
-      texto.classList.add("slider-text");
-      texto.textContent = `Selecione quem tem melhor desempenho neste critério.`;
+      texto.className = "slider-text";
+      texto.textContent = "Selecione quem é mais destacado no critério.";
 
       slider.addEventListener("input", () => {
-        const idx = parseInt(slider.value);
         const valores = [9, 7, 5, 3, 1, 3, 5, 7, 9];
+        const idx = parseInt(slider.value);
         const valor = valores[idx];
 
         if (idx < 4) {
-          texto.textContent = `${alunoA}, dentro desse quesito, tem uma pontuação ${valor}× superior a ${alunoB}.`;
+          texto.textContent = `${a} tem desempenho ${valor}× superior a ${b}.`;
         } else if (idx > 4) {
-          texto.textContent = `${alunoB}, dentro desse quesito, tem uma pontuação ${valor}× superior a ${alunoA}.`;
+          texto.textContent = `${b} tem desempenho ${valor}× superior a ${a}.`;
         } else {
-          texto.textContent = `${alunoA} e ${alunoB} têm desempenho equivalente neste critério.`;
+          texto.textContent = `${a} e ${b} têm desempenho equivalente neste critério.`;
         }
       });
 
@@ -152,35 +136,35 @@
       bloco.appendChild(slider);
       bloco.appendChild(marks);
       bloco.appendChild(texto);
-      divCriterio.appendChild(bloco);
-      container.appendChild(divCriterio);
-    }
-
-    renderizarComparacao();
+      grupo.appendChild(bloco);
+    });
 
     document.getElementById("formComparacaoAlt").addEventListener("submit", function (e) {
       e.preventDefault();
 
-      const { criterio, alunoA, alunoB } = comparacoes[indiceAtual];
-      const chave = `${criterio}::${alunoA}_${alunoB}`;
-      const slider = document.querySelector(`input[name="${chave}_intensidade"]`);
-      const idx = parseInt(slider.value);
-      const valores = [9, 7, 5, 3, 1, 3, 5, 7, 9];
-      const valor = valores[idx];
+      pares.forEach(({ a, b }) => {
+        const chave = `${criterioAtual}::${a}_${b}`;
+        const slider = document.querySelector(`input[name="${chave}"]`);
+        const idx = parseInt(slider.value);
+        const valores = [9, 7, 5, 3, 1, 3, 5, 7, 9];
+        const valor = valores[idx];
 
-      if (idx < 4) {
-        respostas[chave] = valor;
-      } else if (idx > 4) {
-        respostas[chave] = 1 / valor;
-      } else {
-        respostas[chave] = 1;
-      }
+        if (idx < 4) {
+          respostas[chave] = valor;
+        } else if (idx > 4) {
+          respostas[chave] = 1 / valor;
+        } else {
+          respostas[chave] = 1;
+        }
+      });
 
-      indiceAtual++;
-      if (indiceAtual < comparacoes.length) {
-        renderizarComparacao();
+      localStorage.setItem("comparacoes_alternativas", JSON.stringify(respostas));
+
+      if (indiceCriterio + 1 < criterios.length) {
+        localStorage.setItem("criterioAtual", indiceCriterio + 1);
+        location.reload(); // próxima rodada
       } else {
-        localStorage.setItem("comparacoes_alternativas", JSON.stringify(respostas));
+        localStorage.removeItem("criterioAtual");
         window.location.href = "resultado.html";
       }
     });
